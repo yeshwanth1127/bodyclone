@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/digital_twin_logo.dart';
+import '../widgets/particle_background.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -7,36 +9,73 @@ class SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Logo placeholder - replace with actual logo asset
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(
-                Icons.person,
-                size: 80,
-                color: Colors.black,
-              ),
+      body: Stack(
+        children: [
+          // Animated particle background
+          const ParticleBackground(
+            particleCount: 60,
+            particleColor: Colors.white,
+            particleSpeed: 0.5,
+          ),
+          // Content on top
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Digital Twin Logo
+                const DigitalTwinLogo(
+                  size: 140,
+                  animated: true,
+                ),
+                const SizedBox(height: 30),
+                const Text(
+                  'DIGITAL TWIN',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 42,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 4,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'by bodyclone',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w300,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 50),
+                ElevatedButton(
+                  onPressed: () {
+                    // TODO: Navigate to main app screen
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 40,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child: const Text(
+                    'enter your virtual world.',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 30),
-            const Text(
-              'bodyclone',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.w300,
-                letterSpacing: 2,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

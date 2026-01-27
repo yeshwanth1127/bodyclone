@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/digital_twin_logo.dart';
 import '../widgets/particle_background.dart';
+import 'avatar_screen.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -50,7 +51,11 @@ class SplashScreen extends StatelessWidget {
                 const SizedBox(height: 50),
                 ElevatedButton(
                   onPressed: () {
-                    // TODO: Navigate to main app screen
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (context) => const AvatarScreen(),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,

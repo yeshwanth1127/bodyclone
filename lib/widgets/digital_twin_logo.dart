@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
 import 'dart:math' as math;
 
 class DigitalTwinLogo extends StatefulWidget {
   final double size;
   final bool animated;
+  final Color? color;
 
   const DigitalTwinLogo({
     super.key,
     this.size = 120,
     this.animated = true,
+    this.color,
   });
 
   @override
@@ -18,15 +19,24 @@ class DigitalTwinLogo extends StatefulWidget {
 
 class _DigitalTwinLogoState extends State<DigitalTwinLogo> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  late Animation<double> _waveAnimation;
 
   @override
   void initState() {
     super.initState();
     if (widget.animated) {
       _controller = AnimationController(
-        duration: const Duration(seconds: 2),
+        duration: const Duration(seconds: 3),
         vsync: this,
       )..repeat();
+      
+      _waveAnimation = Tween<double>(
+        begin: 0.0,
+        end: 1.0,
+      ).animate(CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ));
     }
   }
 
@@ -40,6 +50,8 @@ class _DigitalTwinLogoState extends State<DigitalTwinLogo> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
+    final logoColor = widget.color ?? Colors.white;
+    
     return SizedBox(
       width: widget.size,
       height: widget.size,
@@ -48,230 +60,297 @@ class _DigitalTwinLogoState extends State<DigitalTwinLogo> with SingleTickerProv
               animation: _controller,
               builder: (context, child) {
                 return CustomPaint(
-                  painter: DigitalTwinLogoPainter(
-                    animated: widget.animated,
-                    animationProgress: _controller.value,
+                  painter: MinimalistLogoPainter(
+                    color: logoColor,
+                    waveProgress: _waveAnimation.value,
                   ),
                 );
               },
             )
           : CustomPaint(
-              painter: DigitalTwinLogoPainter(animated: false),
+              painter: MinimalistLogoPainter(
+                color: logoColor,
+                waveProgress: 0.0,
+              ),
             ),
     );
   }
 }
 
-class DigitalTwinLogoPainter extends CustomPainter {
-  final bool animated;
-  final double animationProgress;
+class MinimalistLogoPainter extends CustomPainter {
+  final Color color;
+  final double waveProgress;
 
-  DigitalTwinLogoPainter({
-    this.animated = true,
-    this.animationProgress = 0.0,
+  MinimalistLogoPainter({
+    required this.color,
+    this.waveProgress = 0.0,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final centerX = size.width / 2;
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+
     final centerY = size.height / 2;
-    final scale = size.width / 200; // Original SVG was 200x200
+    final padding = size.width * 0.15;
+    final rectWidth = size.width * 0.12;
+    final rectHeight = size.height * 0.08;
+    final spacing = size.height * 0.12;
 
-    // Create gradient for physical entity (left)
-    final physicalGradient = ui.Gradient.linear(
-      Offset(centerX - 40 * scale, centerY - 40 * scale),
-      Offset(centerX - 40 * scale + 70 * scale, centerY - 40 * scale + 70 * scale),
-      [
-        const Color(0xFF667eea),
-        const Color(0xFF764ba2),
-      ],
+    // Draw central undulating waveform
+    final wavePath = Path();
+    final waveStartX = padding + rectWidth + 10;
+    final waveEndX = size.width - padding - rectWidth - 10;
+    final waveAmplitude = size.height * 0.15;
+    final peakX = size.width * 0.4; // Peak slightly left of center
+    
+    wavePath.moveTo(waveStartX, centerY + waveAmplitude * 0.3);
+    
+    // Create smooth curve with peak
+    final controlPoint1X = waveStartX + (peakX - waveStartX) * 0.5;
+    final controlPoint1Y = centerY - waveAmplitude;
+    final controlPoint2X = peakX;
+    final controlPoint2Y = centerY - waveAmplitude;
+    
+    wavePath.cubicTo(
+      controlPoint1X,
+      controlPoint1Y,
+      controlPoint2X,
+      controlPoint2Y,
+      peakX,
+      centerY - waveAmplitude,
+    );
+    
+    // Continue down to the right
+    final controlPoint3X = peakX + (waveEndX - peakX) * 0.3;
+    final controlPoint3Y = centerY + waveAmplitude * 0.2;
+    
+    wavePath.cubicTo(
+      peakX + (waveEndX - peakX) * 0.2,
+      centerY,
+      controlPoint3X,
+      controlPoint3Y,
+      waveEndX,
+      centerY + waveAmplitude * 0.4,
+    );
+    
+    canvas.drawPath(wavePath, paint);
+
+    // Draw 3 rectangles on the left (stacked vertically)
+    final leftX = padding;
+    final topRectY = centerY - spacing - rectHeight / 2;
+    final middleRectY = centerY - rectHeight / 2;
+    final bottomRectY = centerY + spacing - rectHeight / 2;
+
+    _drawRectangle(canvas, paint, leftX, topRectY, rectWidth, rectHeight);
+    _drawRectangle(canvas, paint, leftX, middleRectY, rectWidth, rectHeight);
+    _drawRectangle(canvas, paint, leftX, bottomRectY, rectWidth, rectHeight);
+
+    // Draw 2 rectangles on the right (stacked vertically)
+    final rightX = size.width - padding - rectWidth;
+    final rightTopRectY = centerY - spacing / 2 - rectHeight / 2;
+    final rightBottomRectY = centerY + spacing / 2 - rectHeight / 2;
+
+    _drawRectangle(canvas, paint, rightX, rightTopRectY, rectWidth, rectHeight);
+    _drawRectangle(canvas, paint, rightX, rightBottomRectY, rectWidth, rectHeight);
+
+    // Draw smaller dashed square below the right rectangles
+    final smallSquareSize = rectWidth * 0.7;
+    final smallSquareX = rightX + (rectWidth - smallSquareSize) / 2;
+    final smallSquareY = rightBottomRectY + rectHeight + spacing * 0.6;
+
+    // Draw dashed border for the small square
+    final dashPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    final dashLength = 3.0;
+    final dashSpace = 3.0;
+
+    // Draw dashed rectangle
+    _drawDashedRect(
+      canvas,
+      dashPaint,
+      smallSquareX,
+      smallSquareY,
+      smallSquareSize,
+      smallSquareSize,
+      dashLength,
+      dashSpace,
     );
 
-    // Create gradient for digital entity (right)
-    final digitalGradient = ui.Gradient.linear(
-      Offset(centerX + 40 * scale, centerY - 40 * scale),
-      Offset(centerX + 40 * scale + 70 * scale, centerY - 40 * scale + 70 * scale),
-      [
-        const Color(0xFFf093fb),
-        const Color(0xFFf5576c),
-      ],
-    );
-
-    // Physical entity (left) - solid circle
-    final physicalPaint = Paint()
-      ..shader = physicalGradient
+    // Draw corner indicators (small squares at corners and midpoints)
+    final indicatorSize = 3.0;
+    final indicatorPaint = Paint()
+      ..color = color
       ..style = PaintingStyle.fill;
-    
-    canvas.drawCircle(
-      Offset(centerX - 30 * scale, centerY),
-      35 * scale,
-      physicalPaint,
-    );
 
-    // Physical entity inner circles
-    final physicalStroke = Paint()
-      ..color = Colors.white.withOpacity(0.6)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2 * scale;
-    
-    canvas.drawCircle(
-      Offset(centerX - 30 * scale, centerY),
-      25 * scale,
-      physicalStroke,
+    // Top-left corner
+    canvas.drawRect(
+      Rect.fromLTWH(smallSquareX, smallSquareY, indicatorSize, indicatorSize),
+      indicatorPaint,
     );
-
-    final physicalInner = Paint()
-      ..color = Colors.white.withOpacity(0.3)
-      ..style = PaintingStyle.fill;
-    
-    canvas.drawCircle(
-      Offset(centerX - 30 * scale, centerY),
-      15 * scale,
-      physicalInner,
-    );
-
-    // Digital entity (right) - wireframe circle
-    final digitalStroke = Paint()
-      ..shader = digitalGradient
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3 * scale;
-    
-    canvas.drawCircle(
-      Offset(centerX + 30 * scale, centerY),
-      35 * scale,
-      digitalStroke,
-    );
-
-    // Digital entity dashed inner circle
-    final digitalDashed = Paint()
-      ..shader = digitalGradient
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2 * scale;
-    
-    final path = Path();
-    path.addArc(
-      Rect.fromCircle(
-        center: Offset(centerX + 30 * scale, centerY),
-        radius: 25 * scale,
+    // Top-right corner
+    canvas.drawRect(
+      Rect.fromLTWH(
+        smallSquareX + smallSquareSize - indicatorSize,
+        smallSquareY,
+        indicatorSize,
+        indicatorSize,
       ),
-      0,
-      2 * 3.14159,
+      indicatorPaint,
     );
-    
-    // Draw dashed circle manually
-    final dashLength = 4 * scale;
-    final dashSpace = 4 * scale;
-    for (double angle = 0; angle < 2 * math.pi; angle += (dashLength + dashSpace) / (25 * scale)) {
-      final x1 = centerX + 30 * scale + 25 * scale * math.cos(angle);
-      final y1 = centerY + 25 * scale * math.sin(angle);
-      final x2 = centerX + 30 * scale + 25 * scale * math.cos(angle + dashLength / (25 * scale));
-      final y2 = centerY + 25 * scale * math.sin(angle + dashLength / (25 * scale));
-      
-      canvas.drawLine(
-        Offset(x1, y1),
-        Offset(x2, y2),
-        digitalDashed,
-      );
+    // Bottom-left corner
+    canvas.drawRect(
+      Rect.fromLTWH(
+        smallSquareX,
+        smallSquareY + smallSquareSize - indicatorSize,
+        indicatorSize,
+        indicatorSize,
+      ),
+      indicatorPaint,
+    );
+    // Bottom-right corner
+    canvas.drawRect(
+      Rect.fromLTWH(
+        smallSquareX + smallSquareSize - indicatorSize,
+        smallSquareY + smallSquareSize - indicatorSize,
+        indicatorSize,
+        indicatorSize,
+      ),
+      indicatorPaint,
+    );
+    // Top midpoint
+    canvas.drawRect(
+      Rect.fromLTWH(
+        smallSquareX + smallSquareSize / 2 - indicatorSize / 2,
+        smallSquareY,
+        indicatorSize,
+        indicatorSize,
+      ),
+      indicatorPaint,
+    );
+    // Bottom midpoint
+    canvas.drawRect(
+      Rect.fromLTWH(
+        smallSquareX + smallSquareSize / 2 - indicatorSize / 2,
+        smallSquareY + smallSquareSize - indicatorSize,
+        indicatorSize,
+        indicatorSize,
+      ),
+      indicatorPaint,
+    );
+    // Left midpoint
+    canvas.drawRect(
+      Rect.fromLTWH(
+        smallSquareX,
+        smallSquareY + smallSquareSize / 2 - indicatorSize / 2,
+        indicatorSize,
+        indicatorSize,
+      ),
+      indicatorPaint,
+    );
+    // Right midpoint
+    canvas.drawRect(
+      Rect.fromLTWH(
+        smallSquareX + smallSquareSize - indicatorSize,
+        smallSquareY + smallSquareSize / 2 - indicatorSize / 2,
+        indicatorSize,
+        indicatorSize,
+      ),
+      indicatorPaint,
+    );
+
+    // Draw horizontal scrollbar at the bottom
+    final scrollbarY = size.height - 8;
+    final scrollbarWidth = size.width * 0.6;
+    final scrollbarX = (size.width - scrollbarWidth) / 2;
+    final scrollbarHeight = 4.0;
+
+    final scrollbarPaint = Paint()
+      ..color = color.withOpacity(0.5)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(scrollbarX, scrollbarY, scrollbarWidth, scrollbarHeight),
+        const Radius.circular(2),
+      ),
+      scrollbarPaint,
+    );
+  }
+
+  void _drawRectangle(
+    Canvas canvas,
+    Paint paint,
+    double x,
+    double y,
+    double width,
+    double height,
+  ) {
+    canvas.drawRect(
+      Rect.fromLTWH(x, y, width, height),
+      paint,
+    );
+  }
+
+  void _drawDashedRect(
+    Canvas canvas,
+    Paint paint,
+    double x,
+    double y,
+    double width,
+    double height,
+    double dashLength,
+    double dashSpace,
+  ) {
+    // Top edge
+    _drawDashedLine(canvas, paint, Offset(x, y), Offset(x + width, y), dashLength, dashSpace);
+    // Right edge
+    _drawDashedLine(canvas, paint, Offset(x + width, y), Offset(x + width, y + height), dashLength, dashSpace);
+    // Bottom edge
+    _drawDashedLine(canvas, paint, Offset(x + width, y + height), Offset(x, y + height), dashLength, dashSpace);
+    // Left edge
+    _drawDashedLine(canvas, paint, Offset(x, y + height), Offset(x, y), dashLength, dashSpace);
+  }
+
+  void _drawDashedLine(
+    Canvas canvas,
+    Paint paint,
+    Offset start,
+    Offset end,
+    double dashLength,
+    double dashSpace,
+  ) {
+    final path = Path();
+    final distance = (end - start).distance;
+    final direction = (end - start) / distance;
+    double currentDistance = 0.0;
+    bool draw = true;
+
+    while (currentDistance < distance) {
+      final currentPoint = start + direction * currentDistance;
+      final nextDistance = currentDistance + (draw ? dashLength : dashSpace);
+      final nextPoint = start + direction * math.min(nextDistance, distance);
+
+      if (draw) {
+        path.moveTo(currentPoint.dx, currentPoint.dy);
+        path.lineTo(nextPoint.dx, nextPoint.dy);
+      }
+
+      currentDistance = nextDistance;
+      draw = !draw;
     }
 
-    // Digital entity inner filled circle
-    final digitalInner = Paint()
-      ..shader = digitalGradient
-      ..style = PaintingStyle.fill
-      ..color = const Color(0xFFf093fb).withOpacity(0.4);
-    
-    canvas.drawCircle(
-      Offset(centerX + 30 * scale, centerY),
-      15 * scale,
-      digitalInner,
-    );
-
-    // Connection lines between entities
-    final connectionPaint = Paint()
-      ..color = Colors.white.withOpacity(0.6)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2 * scale;
-    
-    // Upper connection curve
-    final upperPath = Path();
-    upperPath.moveTo(centerX - 5 * scale, centerY - 5 * scale);
-    upperPath.quadraticBezierTo(
-      centerX,
-      centerY - 20 * scale,
-      centerX + 5 * scale,
-      centerY - 5 * scale,
-    );
-    canvas.drawPath(upperPath, connectionPaint);
-
-    // Lower connection curve
-    final lowerPath = Path();
-    lowerPath.moveTo(centerX - 5 * scale, centerY + 5 * scale);
-    lowerPath.quadraticBezierTo(
-      centerX,
-      centerY + 20 * scale,
-      centerX + 5 * scale,
-      centerY + 5 * scale,
-    );
-    canvas.drawPath(lowerPath, connectionPaint);
-
-    // Data particles (animated)
-    if (animated) {
-      final particlePaint = Paint()
-        ..color = Colors.white.withOpacity(0.8)
-        ..style = PaintingStyle.fill;
-      
-      // First particle
-      final progress1 = animationProgress;
-      final particleX1 = centerX - 15 * scale + (30 * scale * progress1);
-      final particleY1 = centerY - 5 * scale + (10 * scale * (progress1 - 0.5).abs);
-      canvas.drawCircle(
-        Offset(particleX1, particleY1),
-        2 * scale,
-        particlePaint,
-      );
-      
-      // Second particle (offset)
-      final progress2 = (animationProgress + 0.3) % 1.0;
-      final particleX2 = centerX - 15 * scale + (30 * scale * progress2);
-      final particleY2 = centerY + 5 * scale - (10 * scale * (progress2 - 0.5).abs);
-      canvas.drawCircle(
-        Offset(particleX2, particleY2),
-        1.5 * scale,
-        particlePaint..color = Colors.white.withOpacity(0.6),
-      );
-    }
-
-    // Subtle grid pattern overlay
-    final gridPaint = Paint()
-      ..color = Colors.white.withOpacity(0.2)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.5 * scale;
-    
-    // Horizontal lines
-    for (int i = 1; i < 4; i++) {
-      final y = size.height * i / 4;
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        gridPaint,
-      );
-    }
-    
-    // Vertical lines
-    for (int i = 1; i < 4; i++) {
-      final x = size.width * i / 4;
-      canvas.drawLine(
-        Offset(x, 0),
-        Offset(x, size.height),
-        gridPaint,
-      );
-    }
+    canvas.drawPath(path, paint);
   }
 
   @override
-  bool shouldRepaint(covariant DigitalTwinLogoPainter oldDelegate) {
-    return animated && oldDelegate.animationProgress != animationProgress;
+  bool shouldRepaint(covariant MinimalistLogoPainter oldDelegate) {
+    return oldDelegate.color != color || oldDelegate.waveProgress != waveProgress;
   }
 }
-
-

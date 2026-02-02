@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/health_data.dart';
 
@@ -85,6 +86,99 @@ class HealthApiService {
       }
     } catch (e) {
       throw Exception('Error fetching vitals: $e');
+    }
+  }
+
+  Future<void> uploadReport({
+    required String filePath,
+    required String fileName,
+    bool isPrescription = false,
+  }) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw Exception('File does not exist');
+      }
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/api/reports/upload'),
+      );
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          filePath,
+          filename: fileName,
+        ),
+      );
+
+      request.fields['file_name'] = fileName;
+      request.fields['is_prescription'] = isPrescription.toString();
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Failed to upload file: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error uploading file: $e');
+    }
+  }
+
+  Future<void> uploadReportBytes({
+    required List<int> fileBytes,
+    required String fileName,
+    bool isPrescription = false,
+  }) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/api/reports/upload'),
+      );
+
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          fileBytes,
+          filename: fileName,
+        ),
+      );
+
+      request.fields['file_name'] = fileName;
+      request.fields['is_prescription'] = isPrescription.toString();
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Failed to upload file: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error uploading file: $e');
+    }
+  }
+
+  Future<void> createVoiceReport({
+    required String transcript,
+    required Map<String, dynamic> structuredData,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/reports/from-voice'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'transcript': transcript,
+          'structured_data': structuredData,
+        }),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Failed to create voice report: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error creating voice report: $e');
     }
   }
 

@@ -44,6 +44,23 @@ flutter run
 - iOS Simulator: `http://localhost:5000`
 - Physical Device: `http://YOUR_COMPUTER_IP:5000` (e.g., `http://192.168.1.100:5000`)
 
+### 3. Running on macOS
+
+If the Flutter app does not run or render on macOS:
+
+1. **Add the macOS platform** (if the `macos/` folder is missing):
+   ```bash
+   cd bodyclone/bodyclone
+   flutter create --platforms=macos .
+   ```
+
+2. **Run the app on macOS**:
+   ```bash
+   flutter run -d macos
+   ```
+
+3. **Health / Vitals on macOS**: The `health` package only supports **iOS and Android**. On macOS the app runs normally, but the **Vitals** screen will show “Health Connect is available on Android devices” (and iOS uses HealthKit). All other screens (Reports, Medication, Consult, Avatar) work on macOS.
+
 ## 📱 App Flow
 
 1. **Splash Screen** - Shows logo and "enter your virtual world" button
@@ -136,6 +153,10 @@ flutter pub get
 ### Avatar not showing?
 - Check if backend is running
 - App will use mock data if backend is unavailable (for testing)
+
+### App not rendering on macOS?
+- Ensure the macOS platform is added: run `flutter create --platforms=macos .` from the Flutter project root (`bodyclone/bodyclone`). The repo may not include the `macos/` folder.
+- The **health** plugin (Health Connect / HealthKit) only supports iOS and Android; the app is configured to skip it on macOS so the rest of the UI still renders. If you see a blank or crashed window, ensure you have the latest code and the `macos/` folder from the step above.
 
 ## 🎨 Customization
 

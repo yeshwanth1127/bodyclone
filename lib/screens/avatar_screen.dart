@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:ui' as ui;
+import 'package:file_picker/file_picker.dart';
 import '../services/health_api_service.dart';
 import '../models/health_data.dart';
+import 'voice_report_screen.dart';
 
 // Conditional imports for web
 import 'dart:html' as html;
@@ -21,6 +23,7 @@ class _AvatarScreenState extends State<AvatarScreen> with TickerProviderStateMix
   bool _isLoading = true;
   String _avatarMood = 'calm';
   bool _isViewRegistered = false;
+  String? _selectedMetricType; // Track which overlay is shown
   
   late AnimationController _pulseController;
   late AnimationController _rotationController;
@@ -101,6 +104,69 @@ class _AvatarScreenState extends State<AvatarScreen> with TickerProviderStateMix
     }
   }
 
+  Future<void> _uploadFile({bool isPrescription = false}) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        allowMultiple: false,
+      );
+
+      if (result != null) {
+        final file = result.files.single;
+        final fileName = file.name;
+        final filePath = kIsWeb ? null : file.path;
+        
+        if (filePath == null && !kIsWeb) {
+          throw Exception('File path is null');
+        }
+        
+        // For web, we need to handle bytes differently
+        if (kIsWeb && file.bytes != null) {
+          // Upload file to backend using bytes
+          await _apiService.uploadReportBytes(
+            fileBytes: file.bytes!,
+            fileName: fileName,
+            isPrescription: isPrescription,
+          );
+        } else if (filePath != null) {
+          // Upload file to backend using path
+          await _apiService.uploadReport(
+            filePath: filePath,
+            fileName: fileName,
+            isPrescription: isPrescription,
+          );
+        } else {
+          throw Exception('Unable to get file data');
+        }
+
+        // Reload health data
+        await _loadHealthData();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                isPrescription
+                    ? 'Prescription uploaded successfully'
+                    : 'Report uploaded successfully',
+              ),
+              backgroundColor: const Color(0xFF1e293b),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading file: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _onHealthIconTap(String metricType) async {
     try {
       // Update avatar mood based on which metric was tapped
@@ -123,10 +189,8 @@ class _AvatarScreenState extends State<AvatarScreen> with TickerProviderStateMix
       await _apiService.updateAvatarMood(newMood);
       setState(() {
         _avatarMood = newMood;
+        _selectedMetricType = metricType; // Show glassmorphic overlay
       });
-      
-      // Show metric details
-      _showMetricDetails(metricType);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -136,45 +200,117 @@ class _AvatarScreenState extends State<AvatarScreen> with TickerProviderStateMix
     }
   }
 
-  void _showMetricDetails(String metricType) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.6,
-        decoration: const BoxDecoration(
-          color: Color(0xFF0f172a),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 40,
-              height: 4,
+  void _closeOverlay() {
+    setState(() {
+      _selectedMetricType = null;
+    });
+  }
+
+  Widget _buildGlassmorphicOverlay() {
+    if (_selectedMetricType == null) return const SizedBox.shrink();
+    
+    return GestureDetector(
+      onTap: _closeOverlay, // Close when tapping outside
+      child: Container(
+        color: Colors.black.withOpacity(0.3), // Semi-transparent backdrop
+        child: Center(
+          child: GestureDetector(
+            onTap: () {}, // Prevent closing when tapping inside the tile
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.85,
+              height: MediaQuery.of(context).size.height * 0.7,
+              margin: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.grey[600],
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(24),
+                // Glassmorphic effect
+                color: Colors.white.withOpacity(0.1),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.2),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 20,
+                    spreadRadius: 0,
+                  ),
+                  BoxShadow(
+                    color: _getMetricColor(_selectedMetricType!).withOpacity(0.2),
+                    blurRadius: 30,
+                    spreadRadius: 2,
+                  ),
+                ],
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(
-                _getMetricTitle(metricType),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      children: [
+                        // Header with close button
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Colors.white.withOpacity(0.1),
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _getMetricTitle(_selectedMetricType!),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close, color: Colors.white),
+                                onPressed: _closeOverlay,
+                                tooltip: 'Close',
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Content
+                        Expanded(
+                          child: _buildMetricContent(_selectedMetricType!),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-            Expanded(
-              child: _buildMetricContent(metricType),
-            ),
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  Color _getMetricColor(String type) {
+    switch (type) {
+      case 'vitals':
+        return Colors.red;
+      case 'reports':
+        return Colors.blue;
+      case 'medication':
+        return Colors.purple;
+      case 'consultations':
+        return Colors.teal;
+      default:
+        return Colors.white;
+    }
   }
 
   String _getMetricTitle(String type) {
@@ -225,26 +361,136 @@ class _AvatarScreenState extends State<AvatarScreen> with TickerProviderStateMix
   }
 
   Widget _buildReportsContent() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: _healthData!.reports.map((report) {
-        return Card(
-          color: const Color(0xFF1e293b),
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            leading: const Icon(Icons.description, color: Colors.blue),
-            title: Text(report.type, style: const TextStyle(color: Colors.white)),
-            subtitle: Text(
-              '${_formatDate(report.date)}\n${report.summary}',
-              style: TextStyle(color: Colors.grey[400]),
-            ),
-            trailing: Chip(
-              label: Text(report.status, style: const TextStyle(fontSize: 12)),
-              backgroundColor: Colors.green.withOpacity(0.2),
+    return Column(
+      children: [
+        // Action buttons
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: Colors.white.withOpacity(0.1),
+                width: 1,
+              ),
             ),
           ),
-        );
-      }).toList(),
+          child: Column(
+            children: [
+              // Voice report button (full width)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final result = await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const VoiceReportScreen(),
+                      ),
+                    );
+                    if (result == true) {
+                      await _loadHealthData();
+                      setState(() {
+                        // Refresh the overlay content
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.mic),
+                  label: const Text('Record Voice Report'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10b981),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Upload buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _uploadFile(isPrescription: false),
+                      icon: const Icon(Icons.upload_file),
+                      label: const Text('Upload Report'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3b82f6),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _uploadFile(isPrescription: true),
+                      icon: const Icon(Icons.description),
+                      label: const Text('Upload Prescription'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF8b5cf6),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        // Reports list
+        Expanded(
+          child: _healthData!.reports.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.description_outlined,
+                        size: 64,
+                        color: Colors.white.withOpacity(0.3),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No reports yet',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: _healthData!.reports.map((report) {
+                    return Card(
+                      color: const Color(0xFF1e293b),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        leading: const Icon(Icons.description, color: Colors.blue),
+                        title: Text(report.type, style: const TextStyle(color: Colors.white)),
+                        subtitle: Text(
+                          '${_formatDate(report.date)}\n${report.summary}',
+                          style: TextStyle(color: Colors.grey[400]),
+                        ),
+                        trailing: Chip(
+                          label: Text(report.status, style: const TextStyle(fontSize: 12)),
+                          backgroundColor: Colors.green.withOpacity(0.2),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+        ),
+      ],
     );
   }
 
@@ -338,50 +584,57 @@ class _AvatarScreenState extends State<AvatarScreen> with TickerProviderStateMix
                     bottom: 60,
                     left: 0,
                     right: 0,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        // 3D Avatar GLB Model with animation
-                        AnimatedBuilder(
-                          animation: _pulseAnimation,
-                          builder: (context, child) {
-                            return Transform.scale(
-                              scale: _pulseAnimation.value,
-                              child: Container(
-                                width: MediaQuery.of(context).size.width * 0.7,
-                                height: MediaQuery.of(context).size.height * 0.7,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: _getMoodColors(_avatarMood)[0].withOpacity(0.3),
-                                      blurRadius: 30,
-                                      spreadRadius: 5,
-                                    ),
-                                  ],
+                    child: IgnorePointer(
+                      ignoring: true, // Ignore pointer events on avatar area
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          // 3D Avatar GLB Model with animation
+                          AnimatedBuilder(
+                            animation: _pulseAnimation,
+                            builder: (context, child) {
+                              return Transform.scale(
+                                scale: _pulseAnimation.value,
+                                child: Container(
+                                  width: MediaQuery.of(context).size.width * 0.7,
+                                  height: MediaQuery.of(context).size.height * 0.7,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: _getMoodColors(_avatarMood)[0].withOpacity(0.3),
+                                        blurRadius: 30,
+                                        spreadRadius: 5,
+                                      ),
+                                    ],
+                                  ),
+                                  child: ClipOval(
+                                    child: _buildModelViewer(),
+                                  ),
                                 ),
-                                child: ClipOval(
-                                  child: _buildModelViewer(),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 15),
-                        Text(
-                          'Your Digital Twin',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w300,
+                              );
+                            },
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 15),
+                          Text(
+                            'Your Digital Twin',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.7),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w300,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   
-                  // Health metric icons positioned left and right of avatar
+                  // Health metric icons positioned left and right of avatar (on top layer)
                   ..._buildHealthIcons(),
+                  
+                  // Glassmorphic overlay
+                  if (_selectedMetricType != null)
+                    _buildGlassmorphicOverlay(),
                 ],
               ),
     );
@@ -440,60 +693,71 @@ class _AvatarScreenState extends State<AvatarScreen> with TickerProviderStateMix
           top: iconY - 35,
           child: GestureDetector(
             onTap: () => _onHealthIconTap(iconData['type'] as String),
-              child: Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  // Glass morphism effect
-                  color: Colors.white.withOpacity(0.1),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 10,
-                      spreadRadius: 0,
-                    ),
-                    BoxShadow(
-                      color: (iconData['color'] as Color).withOpacity(0.3),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: BackdropFilter(
-                    filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        shape: BoxShape.circle,
+            behavior: HitTestBehavior.opaque,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _onHealthIconTap(iconData['type'] as String),
+                borderRadius: BorderRadius.circular(35),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      // Glass morphism effect
+                      color: Colors.white.withOpacity(0.1),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1.5,
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            iconData['icon'] as IconData,
-                            color: iconData['color'] as Color,
-                            size: 28,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 10,
+                          spreadRadius: 0,
+                        ),
+                        BoxShadow(
+                          color: (iconData['color'] as Color).withOpacity(0.3),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: BackdropFilter(
+                        filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            shape: BoxShape.circle,
                           ),
-                          Text(
-                            iconData['label'] as String,
-                            style: TextStyle(
-                              color: iconData['color'] as Color,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                iconData['icon'] as IconData,
+                                color: iconData['color'] as Color,
+                                size: 28,
+                              ),
+                              Text(
+                                iconData['label'] as String,
+                                style: TextStyle(
+                                  color: iconData['color'] as Color,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
+            ),
           ),
         ),
       );
@@ -510,60 +774,71 @@ class _AvatarScreenState extends State<AvatarScreen> with TickerProviderStateMix
           top: iconY - 30,
           child: GestureDetector(
             onTap: () => _onHealthIconTap(iconData['type'] as String),
-              child: Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  // Glass morphism effect
-                  color: Colors.white.withOpacity(0.1),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 10,
-                      spreadRadius: 0,
-                    ),
-                    BoxShadow(
-                      color: (iconData['color'] as Color).withOpacity(0.3),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: BackdropFilter(
-                    filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        shape: BoxShape.circle,
+            behavior: HitTestBehavior.opaque,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _onHealthIconTap(iconData['type'] as String),
+                borderRadius: BorderRadius.circular(35),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      // Glass morphism effect
+                      color: Colors.white.withOpacity(0.1),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1.5,
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            iconData['icon'] as IconData,
-                            color: iconData['color'] as Color,
-                            size: 28,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 10,
+                          spreadRadius: 0,
+                        ),
+                        BoxShadow(
+                          color: (iconData['color'] as Color).withOpacity(0.3),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: BackdropFilter(
+                        filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            shape: BoxShape.circle,
                           ),
-                          Text(
-                            iconData['label'] as String,
-                            style: TextStyle(
-                              color: iconData['color'] as Color,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                iconData['icon'] as IconData,
+                                color: iconData['color'] as Color,
+                                size: 28,
+                              ),
+                              Text(
+                                iconData['label'] as String,
+                                style: TextStyle(
+                                  color: iconData['color'] as Color,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
+            ),
           ),
         ),
       );
@@ -730,6 +1005,7 @@ class _AvatarScreenState extends State<AvatarScreen> with TickerProviderStateMix
         auto-rotate
         camera-controls
         interaction-policy="allow-when-focused"
+        camera-orbit="0deg 75deg 105%"
         style="width: 100%; height: 100%; background: transparent;"
         crossorigin="anonymous">
     </model-viewer>
@@ -823,6 +1099,83 @@ class _AvatarScreenState extends State<AvatarScreen> with TickerProviderStateMix
         console.log('Base origin:', baseOrigin);
         console.log('Base path:', basePath);
         console.log('Valid paths:', pathsToTry);
+        
+        // Camera reset functionality
+        let resetTimer = null;
+        let isInteracting = false;
+        const RESET_DELAY = 3000; // 3 seconds of inactivity before reset
+        const DEFAULT_CAMERA_ORBIT = '0deg 75deg 105%';
+        
+        // Store original camera position
+        let originalCameraOrbit = DEFAULT_CAMERA_ORBIT;
+        
+        // Function to reset camera to original position
+        function resetCamera() {
+            if (modelViewer && !isInteracting && modelViewer.loaded) {
+                // Smoothly animate back to original position
+                modelViewer.cameraOrbit = originalCameraOrbit;
+                modelViewer.updateFraming();
+            }
+        }
+        
+        // Function to start reset timer
+        function startResetTimer() {
+            // Clear existing timer
+            if (resetTimer) {
+                clearTimeout(resetTimer);
+            }
+            
+            // Set new timer
+            resetTimer = setTimeout(() => {
+                resetCamera();
+            }, RESET_DELAY);
+        }
+        
+        // Detect when user starts interacting
+        function onInteractionStart() {
+            isInteracting = true;
+            if (resetTimer) {
+                clearTimeout(resetTimer);
+            }
+        }
+        
+        // Detect when user stops interacting
+        function onInteractionEnd() {
+            isInteracting = false;
+            startResetTimer();
+        }
+        
+        // Listen for interaction events
+        if (modelViewer) {
+            // Mouse events
+            modelViewer.addEventListener('mousedown', onInteractionStart);
+            modelViewer.addEventListener('mouseup', onInteractionEnd);
+            modelViewer.addEventListener('mousemove', function(e) {
+                if (e.buttons > 0) {
+                    onInteractionStart();
+                } else {
+                    onInteractionEnd();
+                }
+            });
+            
+            // Touch events
+            modelViewer.addEventListener('touchstart', onInteractionStart);
+            modelViewer.addEventListener('touchend', onInteractionEnd);
+            modelViewer.addEventListener('touchcancel', onInteractionEnd);
+            
+            // Wheel/scroll events
+            modelViewer.addEventListener('wheel', function() {
+                onInteractionStart();
+                onInteractionEnd();
+            });
+            
+            // When model loads, store the initial camera position
+            modelViewer.addEventListener('load', function() {
+                originalCameraOrbit = modelViewer.cameraOrbit || DEFAULT_CAMERA_ORBIT;
+                // Start reset timer when model is first loaded
+                startResetTimer();
+            });
+        }
     </script>
 </body>
 </html>

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/digital_twin_logo.dart';
 import '../widgets/particle_background.dart';
 import 'avatar_screen.dart';
 
@@ -23,10 +22,12 @@ class SplashScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Digital Twin Logo
-                const DigitalTwinLogo(
-                  size: 140,
-                  animated: true,
+                // Logo from assets
+                Image.asset(
+                  'assets/images/logo.png',
+                  width: 140,
+                  height: 140,
+                  fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 30),
                 const Text(

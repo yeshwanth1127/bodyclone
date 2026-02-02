@@ -72,6 +72,16 @@ class Report {
   final String date;
   final String status;
   final String summary;
+  final String? filePath;
+  final String? fileName;
+  // Voice report fields
+  final String? patientName;
+  final String? complaints;
+  final String? diagnosis;
+  final String? notes;
+  final String? prescription;
+  final String? rawTranscript;
+  final bool isVoiceReport;
 
   Report({
     required this.id,
@@ -79,6 +89,15 @@ class Report {
     required this.date,
     required this.status,
     required this.summary,
+    this.filePath,
+    this.fileName,
+    this.patientName,
+    this.complaints,
+    this.diagnosis,
+    this.notes,
+    this.prescription,
+    this.rawTranscript,
+    this.isVoiceReport = false,
   });
 
   factory Report.fromJson(Map<String, dynamic> json) {
@@ -88,6 +107,15 @@ class Report {
       date: json['date'] ?? '',
       status: json['status'] ?? '',
       summary: json['summary'] ?? '',
+      filePath: json['file_path'],
+      fileName: json['file_name'],
+      patientName: json['patient_name'],
+      complaints: json['complaints'],
+      diagnosis: json['diagnosis'],
+      notes: json['notes'],
+      prescription: json['prescription'],
+      rawTranscript: json['raw_transcript'],
+      isVoiceReport: json['is_voice_report'] ?? false,
     );
   }
 }
@@ -99,6 +127,9 @@ class Medication {
   final String frequency;
   final String nextDose;
   final String status;
+  final String? prescriptionPath;
+  final String? prescriptionFileName;
+  final String? prescriptionUploadDate;
 
   Medication({
     required this.id,
@@ -107,6 +138,9 @@ class Medication {
     required this.frequency,
     required this.nextDose,
     required this.status,
+    this.prescriptionPath,
+    this.prescriptionFileName,
+    this.prescriptionUploadDate,
   });
 
   factory Medication.fromJson(Map<String, dynamic> json) {
@@ -117,6 +151,9 @@ class Medication {
       frequency: json['frequency'] ?? '',
       nextDose: json['next_dose'] ?? '',
       status: json['status'] ?? '',
+      prescriptionPath: json['prescription_path'],
+      prescriptionFileName: json['prescription_file_name'],
+      prescriptionUploadDate: json['prescription_upload_date'],
     );
   }
 }

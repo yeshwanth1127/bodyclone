@@ -23,9 +23,9 @@ class AppScaffold extends StatelessWidget {
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Color(0xFF0A0F1C),
-            Color(0xFF0D1426),
-            Color(0xFF101A30),
+            Color(0xFF070B14),
+            Color(0xFF0A1224),
+            Color(0xFF0E1830),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -37,7 +37,7 @@ class AppScaffold extends StatelessWidget {
             child: IgnorePointer(
               ignoring: true,
               child: CustomPaint(
-                painter: _GridOverlay(),
+                painter: _AuraPainter(),
               ),
             ),
           ),
@@ -58,8 +58,8 @@ class AppScaffold extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: 120,
-            left: -140,
+            top: 80,
+            left: -160,
             child: _GlowOrb(
               size: 240,
               color: AppColors.accentRose.withOpacity(0.08),
@@ -106,22 +106,33 @@ class _GlowOrb extends StatelessWidget {
   }
 }
 
-class _GridOverlay extends CustomPainter {
-  const _GridOverlay();
+class _AuraPainter extends CustomPainter {
+  const _AuraPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.035)
+    final gridPaint = Paint()
+      ..color = Colors.white.withOpacity(0.03)
       ..strokeWidth = 1;
 
-    const step = 52.0;
+    const step = 64.0;
     for (double x = 0; x <= size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
     }
     for (double y = 0; y <= size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
+
+    final hazePaint = Paint()
+      ..shader = const RadialGradient(
+        colors: [Color(0x332DD4BF), Color(0x00000000)],
+        radius: 0.8,
+      ).createShader(Rect.fromCircle(
+        center: Offset(0, size.height * 0.2),
+        radius: size.width * 0.9,
+      ));
+
+    canvas.drawCircle(Offset(0, size.height * 0.2), size.width * 0.9, hazePaint);
   }
 
   @override

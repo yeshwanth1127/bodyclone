@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  static const Color ink = Color(0xFF0A0F1C);
-  static const Color surface = Color(0xFF101827);
-  static const Color surfaceElevated = Color(0xFF162036);
-  static const Color surfaceSoft = Color(0xFF0F172A);
-  static const Color accent = Color(0xFF2DD4BF);
-  static const Color accentBlue = Color(0xFF60A5FA);
-  static const Color accentViolet = Color(0xFF8B7BFF);
-  static const Color accentAmber = Color(0xFFF59E0B);
-  static const Color accentRose = Color(0xFFF472B6);
-  static const Color outline = Color(0xFF23324A);
-  static const Color muted = Color(0xFF8B93A7);
+  static const Color ink = Color(0xFF070B14);
+  static const Color surface = Color(0xFF0C1323);
+  static const Color surfaceElevated = Color(0xFF131D33);
+  static const Color surfaceSoft = Color(0xFF0E172B);
+  static const Color accent = Color(0xFF35F2D5);
+  static const Color accentBlue = Color(0xFF5CA9FF);
+  static const Color accentViolet = Color(0xFF9D7BFF);
+  static const Color accentAmber = Color(0xFFF6A03A);
+  static const Color accentRose = Color(0xFFFF6FAE);
+  static const Color outline = Color(0xFF22304B);
+  static const Color muted = Color(0xFF8A94A8);
   static const Color warning = Color(0xFFF4B740);
   static const Color success = Color(0xFF34D399);
   static const Color danger = Color(0xFFFF5C8D);
@@ -21,8 +21,18 @@ class AppColors {
 class AppDecorations {
   static const Gradient cardGradient = LinearGradient(
     colors: [
-      Color(0xFF121C2D),
-      Color(0xFF0F1828),
+      Color(0xFF121B2F),
+      Color(0xFF0D1527),
+    ],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const Gradient heroGradient = LinearGradient(
+    colors: [
+      Color(0xFF1A2744),
+      Color(0xFF0F1A32),
+      Color(0xFF0A1226),
     ],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -52,8 +62,8 @@ class AppTheme {
       onError: Colors.white,
     );
 
-    final display = GoogleFonts.spaceGroteskTextTheme(const TextTheme());
-    final baseTextTheme = GoogleFonts.dmSansTextTheme(const TextTheme())
+    final display = GoogleFonts.outfitTextTheme(const TextTheme());
+    final baseTextTheme = GoogleFonts.manropeTextTheme(const TextTheme())
         .apply(bodyColor: Colors.white, displayColor: Colors.white);
 
     return ThemeData(
@@ -63,8 +73,8 @@ class AppTheme {
       useMaterial3: true,
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.android: _SoftPageTransitionsBuilder(),
+          TargetPlatform.iOS: _SoftPageTransitionsBuilder(),
         },
       ),
       textTheme: baseTextTheme.copyWith(
@@ -183,6 +193,43 @@ class AppTheme {
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: AppColors.accent,
         foregroundColor: AppColors.ink,
+      ),
+    );
+  }
+}
+
+class _SoftPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _SoftPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    if (route.settings.name == '/') {
+      return child;
+    }
+
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0.0, 0.04),
+          end: Offset.zero,
+        ).animate(curved),
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.98, end: 1.0).animate(curved),
+          child: child,
+        ),
       ),
     );
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/health_data.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_scaffold.dart';
 
 class ReportDetailScreen extends StatelessWidget {
   final Report report;
@@ -11,30 +13,36 @@ class ReportDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF020617),
+    return AppScaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0f172a),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          report.isVoiceReport ? 'Voice Report' : 'Report Details',
-          style: const TextStyle(color: Colors.white),
-        ),
-        elevation: 0,
+        title: Text(report.isVoiceReport ? 'Voice Report' : 'Report Details'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) {
+          return Opacity(
+            opacity: value,
+            child: Transform.translate(
+              offset: Offset(0, (1 - value) * 10),
+              child: child,
+            ),
+          );
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Report header
             Card(
-              color: const Color(0xFF1e293b),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -47,15 +55,15 @@ class ReportDetailScreen extends StatelessWidget {
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: report.isVoiceReport
-                                ? const Color(0xFF10b981).withOpacity(0.2)
-                                : const Color(0xFF3b82f6).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
+                                ? AppColors.accent.withOpacity(0.2)
+                                : AppColors.accentBlue.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
                             report.isVoiceReport ? Icons.mic : Icons.description,
                             color: report.isVoiceReport
-                                ? const Color(0xFF10b981)
-                                : const Color(0xFF3b82f6),
+                                ? AppColors.accent
+                                : AppColors.accentBlue,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -68,7 +76,7 @@ class ReportDetailScreen extends StatelessWidget {
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 20,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -90,7 +98,7 @@ class ReportDetailScreen extends StatelessWidget {
                               color: Colors.white,
                             ),
                           ),
-                          backgroundColor: Colors.green.withOpacity(0.2),
+                          backgroundColor: AppColors.success.withOpacity(0.2),
                         ),
                       ],
                     ),
@@ -143,9 +151,8 @@ class ReportDetailScreen extends StatelessWidget {
               if (report.rawTranscript != null && report.rawTranscript!.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Card(
-                  color: const Color(0xFF1e293b),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: ExpansionTile(
                     title: const Text(
@@ -157,6 +164,7 @@ class ReportDetailScreen extends StatelessWidget {
                       color: Colors.grey,
                     ),
                     iconColor: Colors.grey,
+                    collapsedIconColor: Colors.grey,
                     children: [
                       Padding(
                         padding: const EdgeInsets.all(16),
@@ -191,6 +199,7 @@ class ReportDetailScreen extends StatelessWidget {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -198,9 +207,8 @@ class ReportDetailScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Card(
-        color: const Color(0xFF1e293b),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -220,7 +228,7 @@ class ReportDetailScreen extends StatelessWidget {
                     style: TextStyle(
                       color: color ?? Colors.white.withOpacity(0.9),
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -266,4 +274,3 @@ class ReportDetailScreen extends StatelessWidget {
     }
   }
 }
-

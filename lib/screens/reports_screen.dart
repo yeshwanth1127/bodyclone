@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_animate/flutter_animate.dart';
 import '../services/health_api_service.dart';
 import '../models/health_data.dart';
 import '../theme/app_theme.dart';
@@ -149,7 +150,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Quick actions',
+                          'Capture & upload',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 letterSpacing: 0.2,
                               ),
@@ -198,7 +199,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         ),
                       ],
                     ),
-                  ),
+                  ).animate().fadeIn(duration: 450.ms).slideY(begin: 0.08, end: 0),
                 ),
                 Expanded(
                   child: _reports.isEmpty
@@ -237,129 +238,116 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           ),
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                           itemCount: _reports.length,
                           itemBuilder: (context, index) {
                             final report = _reports[index];
-                            return TweenAnimationBuilder<double>(
-                              tween: Tween(begin: 0, end: 1),
-                              duration: Duration(milliseconds: 300 + index * 40),
-                              builder: (context, value, child) {
-                                return Opacity(
-                                  opacity: value,
-                                  child: Transform.translate(
-                                    offset: Offset(0, (1 - value) * 10),
-                                    child: child,
-                                  ),
-                                );
-                              },
-                              child: AppCard(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                padding: EdgeInsets.zero,
-                                child: InkWell(
-                                  onTap: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (context) => ReportDetailScreen(report: report),
-                                      ),
-                                    );
-                                  },
-                                  borderRadius: BorderRadius.circular(18),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 48,
-                                          height: 48,
-                                          decoration: BoxDecoration(
-                                            color: report.isVoiceReport
-                                                ? AppColors.accent.withOpacity(0.2)
-                                                : AppColors.accentBlue.withOpacity(0.2),
-                                            borderRadius: BorderRadius.circular(14),
-                                          ),
-                                          child: Icon(
-                                            report.isVoiceReport ? Icons.mic : Icons.description,
-                                            color: report.isVoiceReport
-                                                ? AppColors.accent
-                                                : AppColors.accentBlue,
-                                          ),
+                            return AppCard(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: EdgeInsets.zero,
+                              child: InkWell(
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => ReportDetailScreen(report: report),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(18),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color: report.isVoiceReport
+                                              ? AppColors.accent.withOpacity(0.2)
+                                              : AppColors.accentBlue.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(14),
                                         ),
-                                        const SizedBox(width: 14),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                report.isVoiceReport && report.patientName != null
-                                                    ? '${report.type} · ${report.patientName}'
-                                                    : report.type,
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 16,
-                                                ),
+                                        child: Icon(
+                                          report.isVoiceReport ? Icons.mic : Icons.description,
+                                          color: report.isVoiceReport
+                                              ? AppColors.accent
+                                              : AppColors.accentBlue,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              report.isVoiceReport && report.patientName != null
+                                                  ? '${report.type} · ${report.patientName}'
+                                                  : report.type,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
                                               ),
-                                              const SizedBox(height: 6),
-                                              if (report.fileName != null)
-                                                Text(
-                                                  report.fileName!,
-                                                  style: TextStyle(
-                                                    color: Colors.white.withOpacity(0.6),
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                              const SizedBox(height: 6),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            if (report.fileName != null)
                                               Text(
-                                                _formatDate(report.date),
+                                                report.fileName!,
                                                 style: TextStyle(
                                                   color: Colors.white.withOpacity(0.6),
                                                   fontSize: 12,
                                                 ),
                                               ),
-                                              if (report.summary.isNotEmpty)
-                                                Padding(
-                                                  padding: const EdgeInsets.only(top: 6),
-                                                  child: Text(
-                                                    report.summary,
-                                                    maxLines: 2,
-                                                    overflow: TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      color: Colors.white.withOpacity(0.65),
-                                                      fontSize: 12,
-                                                    ),
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              _formatDate(report.date),
+                                              style: TextStyle(
+                                                color: Colors.white.withOpacity(0.6),
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            if (report.summary.isNotEmpty)
+                                              Padding(
+                                                padding: const EdgeInsets.only(top: 6),
+                                                child: Text(
+                                                  report.summary,
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    color: Colors.white.withOpacity(0.65),
+                                                    fontSize: 12,
                                                   ),
                                                 ),
-                                            ],
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.success.withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(999),
+                                          border: Border.all(
+                                            color: AppColors.success.withOpacity(0.4),
                                           ),
                                         ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.success.withOpacity(0.15),
-                                            borderRadius: BorderRadius.circular(999),
-                                            border: Border.all(
-                                              color: AppColors.success.withOpacity(0.4),
-                                            ),
-                                          ),
-                                          child: Text(
-                                            report.status,
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.white,
-                                            ),
+                                        child: Text(
+                                          report.status,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.white,
                                           ),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
-                            );
+                            ).animate().fadeIn(delay: (60 * index).ms, duration: 350.ms);
                           },
                         ),
                 ),

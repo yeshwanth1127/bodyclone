@@ -4,6 +4,8 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
 import '../services/n8n_service.dart';
 import '../services/health_api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_scaffold.dart';
 
 class VoiceReportScreen extends StatefulWidget {
   const VoiceReportScreen({super.key});
@@ -146,58 +148,85 @@ class _VoiceReportScreenState extends State<VoiceReportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF020617),
+    return AppScaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0f172a),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Voice Report',
-          style: TextStyle(color: Colors.white),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Voice Report'),
+            Text(
+              'Speak naturally. We will structure it.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withOpacity(0.6),
+                  ),
+            ),
+          ],
         ),
-        elevation: 0,
       ),
-      body: Column(
-        children: [
+      body: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) {
+          return Opacity(
+            opacity: value,
+            child: Transform.translate(
+              offset: Offset(0, (1 - value) * 10),
+              child: child,
+            ),
+          );
+        },
+        child: Column(
+          children: [
           // Recording status
           Container(
             padding: const EdgeInsets.all(24),
-            color: _isListening 
-                ? Colors.red.withOpacity(0.2)
-                : const Color(0xFF0f172a),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (_isListening) ...[
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
+            margin: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _isListening
+                  ? AppColors.danger.withOpacity(0.18)
+                  : AppColors.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppColors.outline),
+            ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: _isListening
+                  ? Row(
+                      key: const ValueKey('recording'),
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: const BoxDecoration(
+                            color: AppColors.danger,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Recording...',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    )
+                  : const Text(
+                      'Tap to Record',
+                      key: ValueKey('idle'),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Recording...',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ] else
-                  const Text(
-                    'Tap to Record',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                    ),
-                  ),
-              ],
             ),
           ),
           
@@ -209,27 +238,32 @@ class _VoiceReportScreenState extends State<VoiceReportScreen> {
                 children: [
                   GestureDetector(
                     onTap: _isListening ? _stopListening : _startListening,
-                    child: Container(
-                      width: 200,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _isListening 
-                            ? Colors.red 
-                            : const Color(0xFF3b82f6),
-                        boxShadow: [
-                          BoxShadow(
-                            color: (_isListening ? Colors.red : const Color(0xFF3b82f6))
-                                .withOpacity(0.5),
-                            blurRadius: 30,
-                            spreadRadius: 10,
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        _isListening ? Icons.stop : Icons.mic,
-                        size: 80,
-                        color: Colors.white,
+                    child: AnimatedScale(
+                      duration: const Duration(milliseconds: 200),
+                      scale: _isListening ? 1.05 : 1.0,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        width: 200,
+                        height: 200,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _isListening 
+                              ? AppColors.danger 
+                              : AppColors.accentBlue,
+                          boxShadow: [
+                            BoxShadow(
+                              color: (_isListening ? AppColors.danger : AppColors.accentBlue)
+                                  .withOpacity(0.5),
+                              blurRadius: _isListening ? 34 : 28,
+                              spreadRadius: _isListening ? 12 : 8,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          _isListening ? Icons.stop : Icons.mic,
+                          size: 80,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -258,11 +292,9 @@ class _VoiceReportScreenState extends State<VoiceReportScreen> {
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1e293b),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.1),
-                ),
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.outline),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,7 +326,7 @@ class _VoiceReportScreenState extends State<VoiceReportScreen> {
           // Generate button
           Container(
             padding: const EdgeInsets.all(16),
-            color: const Color(0xFF0f172a),
+            color: Colors.transparent,
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -302,7 +334,7 @@ class _VoiceReportScreenState extends State<VoiceReportScreen> {
                     ? null 
                     : _generateReport,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3b82f6),
+                  backgroundColor: AppColors.accentBlue,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -338,7 +370,7 @@ class _VoiceReportScreenState extends State<VoiceReportScreen> {
           ),
         ],
       ),
+      ),
     );
   }
 }
-

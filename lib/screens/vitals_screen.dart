@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/health_tip_bar.dart';
@@ -36,112 +37,145 @@ class _VitalsScreenState extends State<VitalsScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                AppCard(
-                  padding: const EdgeInsets.all(18),
-                  glow: true,
-                  glowColor: AppColors.accent,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Recovery pulse',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: AppCard(
+                      padding: const EdgeInsets.all(20),
+                      glow: true,
+                      glowColor: AppColors.accentRose,
+                      gradient: AppDecorations.heroGradient,
+                      child: Row(
                         children: [
-                          _statTile(
-                            context,
-                            label: "Heart Rate",
-                            value: "72",
-                            unit: "bpm",
-                            color: AppColors.accentRose,
-                            icon: Icons.favorite,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Recovery pulse',
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '72 bpm',
+                                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Resting · 10 mins ago',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: AppColors.muted,
+                                      ),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(width: 12),
-                          _statTile(
-                            context,
-                            label: "Steps",
-                            value: "5,432",
-                            unit: "steps",
-                            color: AppColors.accent,
-                            icon: Icons.directions_walk,
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: AppColors.accentRose.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.favorite, color: AppColors.accentRose),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          _statTile(
-                            context,
-                            label: "Calories",
-                            value: "1,280",
-                            unit: "kcal",
-                            color: AppColors.accentAmber,
-                            icon: Icons.local_fire_department,
-                          ),
-                          const SizedBox(width: 12),
-                          _statTile(
-                            context,
-                            label: "Sleep",
-                            value: "7.4",
-                            unit: "hrs",
-                            color: AppColors.accentBlue,
-                            icon: Icons.nightlight_round,
-                          ),
-                        ],
-                      ),
-                    ],
+                    ).animate().fadeIn(duration: 450.ms).slideY(begin: 0.08, end: 0),
                   ),
                 ),
-                const SizedBox(height: 16),
-                _vitalCard(
-                  context,
-                  label: "Heart Rate",
-                  value: "72 bpm",
-                  icon: Icons.favorite,
-                  color: AppColors.accentRose,
-                  subtitle: "Resting · 10 mins ago",
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        _miniStat('Steps', '5,432', 'goal 8k', AppColors.accent),
+                        _miniStat('Calories', '1,280', 'active', AppColors.accentAmber),
+                        _miniStat('Sleep', '7.4h', 'last night', AppColors.accentBlue),
+                        _miniStat('O2', '98%', 'stable', AppColors.accentViolet),
+                      ],
+                    ).animate().fadeIn(delay: 120.ms, duration: 450.ms),
+                  ),
                 ),
-                const SizedBox(height: 12),
-                _vitalCard(
-                  context,
-                  label: "Steps",
-                  value: "5,432",
-                  icon: Icons.directions_walk,
-                  color: AppColors.accent,
-                  subtitle: "Daily goal 8,000",
-                ),
-                const SizedBox(height: 12),
-                _vitalCard(
-                  context,
-                  label: "Calories",
-                  value: "1,280 kcal",
-                  icon: Icons.local_fire_department,
-                  color: AppColors.accentAmber,
-                  subtitle: "Active burn",
-                ),
-                const SizedBox(height: 16),
-                AppCard(
-                  child: ListTile(
-                    leading: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: AppColors.accentBlue.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(12),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                    child: AppCard(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Momentum',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Your resting heart rate is trending lower this week.',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppColors.muted,
+                                ),
+                          ),
+                          const SizedBox(height: 14),
+                          Container(
+                            height: 70,
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceSoft,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.outline.withOpacity(0.5)),
+                            ),
+                            child: Row(
+                              children: List.generate(
+                                7,
+                                (index) => Expanded(
+                                  child: Align(
+                                    alignment: Alignment.bottomCenter,
+                                    child: Container(
+                                      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                                      height: 18 + index * 4,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.accent.withOpacity(0.25),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: const Icon(Icons.watch, color: AppColors.accentBlue),
-                    ),
-                    title: const Text("Connect Smartwatch"),
-                    subtitle: Text(
-                      "Sync live vitals from your wearable.",
-                      style: TextStyle(color: Colors.white.withOpacity(0.6)),
-                    ),
-                    trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                    ).animate().fadeIn(delay: 220.ms, duration: 450.ms),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: AppCard(
+                      child: ListTile(
+                        leading: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.accentBlue.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.watch, color: AppColors.accentBlue),
+                        ),
+                        title: const Text("Connect Smartwatch"),
+                        subtitle: Text(
+                          "Sync live vitals from your wearable.",
+                          style: TextStyle(color: Colors.white.withOpacity(0.6)),
+                        ),
+                        trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                      ),
+                    ).animate().fadeIn(delay: 320.ms, duration: 450.ms),
                   ),
                 ),
               ],
@@ -153,27 +187,30 @@ class _VitalsScreenState extends State<VitalsScreen> {
     );
   }
 
-  Widget _statTile(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required String unit,
-    required Color color,
-    required IconData icon,
-  }) {
-    return Expanded(
-      child: Container(
+  Widget _miniStat(String label, String value, String hint, Color color) {
+    return SizedBox(
+      width: 160,
+      child: AppCard(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceSoft,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.outline.withOpacity(0.6)),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(height: 8),
+            Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.bolt, color: color, size: 16),
+                ),
+                const SizedBox(width: 8),
+                Text(label, style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+            const SizedBox(height: 12),
             Text(
               value,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -181,57 +218,12 @@ class _VitalsScreenState extends State<VitalsScreen> {
                   ),
             ),
             Text(
-              unit,
+              hint,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.muted,
                   ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.white.withOpacity(0.8),
-                  ),
-            ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _vitalCard(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color color,
-    String? subtitle,
-  }) {
-    return AppCard(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.16),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: color),
-        ),
-        title: Text(label),
-        subtitle: subtitle == null
-            ? null
-            : Text(
-                subtitle,
-                style: TextStyle(color: Colors.white.withOpacity(0.6)),
-              ),
-        trailing: Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.w600,
-          ),
         ),
       ),
     );

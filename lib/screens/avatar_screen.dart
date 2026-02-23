@@ -1,16 +1,13 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_animate/flutter_animate.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/app_card.dart';
+import '../widgets/avatar_glb_view.dart';
 import 'medication_screen.dart';
 import 'reports_screen.dart';
 import 'vitals_screen.dart';
-
-// Web only
-import 'dart:html' as html;
-import 'dart:ui_web' as ui_web;
 
 class AvatarScreen extends StatefulWidget {
   const AvatarScreen({super.key});
@@ -31,8 +28,6 @@ class _AvatarScreenState extends State<AvatarScreen>
   Animation<double>? _snapAnim;
 
   bool _isSnapping = false;
-  bool _viewRegistered = false;
-
   final List<Map<String, dynamic>> _icons = [
     {'icon': Icons.favorite, 'color': AppColors.accentRose, 'label': 'Vitals'},
     {'icon': Icons.description, 'color': AppColors.accentBlue, 'label': 'Reports'},
@@ -219,18 +214,75 @@ class _AvatarScreenState extends State<AvatarScreen>
             final topPad = MediaQuery.of(context).padding.top;
             final bottomPad = MediaQuery.of(context).padding.bottom;
             const tipBarHeight = 84.0;
+            const headerHeight = 92.0;
             final availableHeight =
-                constraints.maxHeight - topPad - bottomPad - tipBarHeight - 16;
+                constraints.maxHeight - topPad - bottomPad - tipBarHeight - headerHeight - 12;
             final availableWidth = constraints.maxWidth;
             final center = Offset(
               availableWidth / 2,
-              topPad + availableHeight / 2 + 8,
+              topPad + headerHeight + availableHeight / 2 + 4,
             );
             final scaledAvatar = min(avatarSize, min(availableHeight * 0.62, availableWidth * 0.7));
             final scaledOrbit = min(orbitRadius, scaledAvatar * 0.72);
 
             return Stack(
               children: [
+                Positioned(
+                  left: 20,
+                  right: 20,
+                  top: topPad + 8,
+                  child: AppCard(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    glow: true,
+                    glowColor: AppColors.accentBlue,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.accentBlue.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(Icons.visibility, color: AppColors.accentBlue),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Live twin',
+                                style: Theme.of(context).textTheme.titleSmall,
+                              ),
+                              Text(
+                                'Orbit to explore systems',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.muted,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: AppColors.accent.withOpacity(0.4)),
+                          ),
+                          child: Text(
+                            'Active',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppColors.accent,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.1, end: 0),
                 Positioned(
                   left: center.dx - scaledOrbit * 0.92,
                   top: center.dy - scaledOrbit * 0.92,
@@ -315,35 +367,13 @@ class _AvatarScreenState extends State<AvatarScreen>
                           ),
                         ],
                       ),
-                      child: ClipOval(
-                        child: _buildGlbAvatar(),
+                      child: const ClipOval(
+                        child: AvatarGlbView(),
                       ),
                     ),
                   ),
                 ),
                 ..._buildOrbit(center, scaledOrbit, frontIndex, behind: false, pointerEnabled: false),
-                Positioned(
-                  left: center.dx - 90,
-                  top: center.dy - scaledOrbit - 48,
-                  child: IgnorePointer(
-                    ignoring: true,
-                    child: Container(
-                      width: 180,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.transparent,
-                            AppColors.accent.withOpacity(0.7),
-                            AppColors.accentBlue.withOpacity(0.5),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
                 Positioned(
                   left: 20,
                   right: 20,
@@ -559,66 +589,4 @@ class _AvatarScreenState extends State<AvatarScreen>
     }
   }
 
-  // 🧠 GLB AVATAR — VISUAL ONLY
-  Widget _buildGlbAvatar() {
-    if (!kIsWeb) {
-      return const Center(
-        child: Icon(Icons.person,
-            size: 140, color: Colors.white54),
-      );
-    }
-
-    const viewId = 'avatar-glb-view';
-
-    if (!_viewRegistered) {
-      ui_web.platformViewRegistry.registerViewFactory(
-        viewId,
-        (_) {
-          final baseUrl = html.window.location.origin;
-
-          return html.IFrameElement()
-            ..srcdoc = '''
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script type="module"
- src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js">
-</script>
-<style>
-html, body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  background: transparent;
-}
-model-viewer {
-  width: 100%;
-  height: 100%;
-  background: transparent;
-  pointer-events: none;
-}
-</style>
-</head>
-<body>
-<model-viewer
- src="$baseUrl/assets/images/avatar.glb"
- camera-orbit="0deg 70deg 55%"
- camera-target="0m 1.45m 0m"
- field-of-view="22deg">
-</model-viewer>
-</body>
-</html>
-'''
-            ..style.border = 'none'
-            ..style.pointerEvents = 'none'
-            ..style.width = '100%'
-            ..style.height = '100%';
-        },
-      );
-      _viewRegistered = true;
-    }
-
-    return const HtmlElementView(viewType: viewId);
-  }
 } 

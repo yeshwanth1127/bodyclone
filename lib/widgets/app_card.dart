@@ -10,6 +10,7 @@ class AppCard extends StatelessWidget {
   final double radius;
   final bool glow;
   final Color? glowColor;
+  final bool glass;
 
   const AppCard({
     super.key,
@@ -21,14 +22,27 @@ class AppCard extends StatelessWidget {
     this.radius = 18,
     this.glow = false,
     this.glowColor,
+    this.glass = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final baseGradient = gradient ??
+        (glass
+            ? const LinearGradient(
+                colors: [
+                  Color(0xCC111C32),
+                  Color(0xAA0C1628),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : AppDecorations.cardGradient);
+
     return Container(
       margin: margin,
       decoration: BoxDecoration(
-        gradient: gradient ?? AppDecorations.cardGradient,
+        gradient: baseGradient,
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(

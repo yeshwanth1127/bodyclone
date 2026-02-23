@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/app_card.dart';
 import '../widgets/digital_twin_logo.dart';
-import '../widgets/particle_background.dart';
 import 'avatar_screen.dart';
 
 class SplashScreen extends StatelessWidget {
@@ -11,158 +12,243 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      body: Stack(
-        children: [
-          const ParticleBackground(
-            particleCount: 70,
-            particleColor: Colors.white,
-            particleSpeed: 0.6,
-          ),
-          SafeArea(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: 1),
-                      duration: const Duration(milliseconds: 700),
-                      builder: (context, value, child) {
-                        return Opacity(
-                          opacity: value,
-                          child: Transform.translate(
-                            offset: Offset(0, (1 - value) * 12),
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: const DigitalTwinLogo(
-                        size: 140,
-                        animated: true,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: 1),
-                      duration: const Duration(milliseconds: 900),
-                      builder: (context, value, child) {
-                        return Opacity(
-                          opacity: value,
-                          child: Transform.translate(
-                            offset: Offset(0, (1 - value) * 10),
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: Text(
-                        'Digital Twin',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.6,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const DigitalTwinLogo(size: 44, animated: true, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Bodyclone',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
                             ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Your biometric world, alive in one elegant timeline.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.white.withOpacity(0.75),
-                            fontSize: 15,
-                          ),
-                    ),
-                    const SizedBox(height: 20),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: const [
-                        _FeaturePill(label: 'Secure sync'),
-                        _FeaturePill(label: 'AI summaries'),
-                        _FeaturePill(label: 'Daily insights'),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (context) => const AvatarScreen(),
+                      Text(
+                        'Digital twin platform',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.muted,
                             ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accent,
-                          foregroundColor: AppColors.ink,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: const Text('Enter your virtual world'),
                       ),
+                    ],
+                  ),
+                  const Spacer(),
+                  _StatusPill(label: 'Live', color: AppColors.accent),
+                ],
+              ).animate().fadeIn(duration: 400.ms),
+              const SizedBox(height: 24),
+              Text(
+                'Make your health\nfeel alive.',
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      height: 1.05,
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () {
-                          showDialog<void>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              backgroundColor: AppColors.surface,
-                              title: const Text('Digital Twin'),
-                              content: Text(
-                                'A living, secure view of your health story, updated by your devices, reports, and clinical notes.',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Colors.white.withOpacity(0.8),
-                                    ),
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: const Text('Got it'),
+              ).animate().fadeIn(delay: 120.ms, duration: 450.ms),
+              const SizedBox(height: 10),
+              Text(
+                'A cinematic, real-time view of your body — synced from devices, reports, and AI.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.muted,
+                    ),
+              ).animate().fadeIn(delay: 220.ms, duration: 450.ms),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: const [
+                  _Pill(label: 'Realtime sync'),
+                  _Pill(label: 'Adaptive insights'),
+                  _Pill(label: 'Private by design'),
+                ],
+              ).animate().fadeIn(delay: 320.ms, duration: 450.ms),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppCard(
+                      padding: const EdgeInsets.all(16),
+                      glow: true,
+                      glowColor: AppColors.accentBlue,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _MetricHeader(label: 'Vital score', icon: Icons.favorite),
+                          const SizedBox(height: 8),
+                          Text(
+                            '92',
+                            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
                                 ),
-                              ],
-                            ),
-                          );
-                        },
-                        child: const Text('Learn what a digital twin is'),
+                          ),
+                          Text(
+                            'Excellent range',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppColors.muted,
+                                ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: AppCard(
+                      padding: const EdgeInsets.all(16),
+                      glow: true,
+                      glowColor: AppColors.accentRose,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _MetricHeader(label: 'Recovery', icon: Icons.auto_awesome),
+                          const SizedBox(height: 8),
+                          Text(
+                            '7.4h',
+                            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                          Text(
+                            'Sleep tracked',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppColors.muted,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ).animate().fadeIn(delay: 420.ms, duration: 450.ms),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (context) => const AvatarScreen(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: AppColors.ink,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text('Enter your twin'),
                 ),
-              ),
-            ),
+              ).animate().fadeIn(delay: 520.ms, duration: 450.ms),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    showDialog<void>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: AppColors.surface,
+                        title: const Text('Digital Twin'),
+                        content: Text(
+                          'A living, secure view of your health story, updated by your devices, reports, and clinical notes.',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Colors.white.withOpacity(0.8),
+                              ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Got it'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: const Text('What is a digital twin?'),
+                ),
+              ).animate().fadeIn(delay: 620.ms, duration: 450.ms),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _FeaturePill extends StatelessWidget {
+class _StatusPill extends StatelessWidget {
   final String label;
+  final Color color;
 
-  const _FeaturePill({required this.label});
+  const _StatusPill({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated.withOpacity(0.8),
+        color: color.withOpacity(0.2),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.outline.withOpacity(0.7)),
+        border: Border.all(color: color.withOpacity(0.4)),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.white.withOpacity(0.8),
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+      ),
+    );
+  }
+}
+
+class _MetricHeader extends StatelessWidget {
+  final String label;
+  final IconData icon;
+
+  const _MetricHeader({required this.label, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.accent),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.muted,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  final String label;
+
+  const _Pill({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.outline.withOpacity(0.6)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.white.withOpacity(0.85),
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.2,
             ),
       ),
     );

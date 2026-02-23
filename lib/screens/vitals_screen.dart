@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
-import '../services/health_connect_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/health_tip_bar.dart';
+import '../widgets/app_card.dart';
 
 class VitalsScreen extends StatefulWidget {
   const VitalsScreen({super.key});
@@ -10,477 +12,228 @@ class VitalsScreen extends StatefulWidget {
 }
 
 class _VitalsScreenState extends State<VitalsScreen> {
-  final HealthConnectService _healthService = HealthConnectService();
-  bool _isLoading = true;
-  bool _hasPermissions = false;
-  bool _isAvailable = false;
-  Map<String, dynamic> _vitals = {};
-
-  @override
-  void initState() {
-    super.initState();
-    if (kIsWeb) {
-      // Health Connect is not available on web
-      setState(() {
-        _isLoading = false;
-        _isAvailable = false;
-      });
-    } else {
-      _initializeHealthConnect();
-    }
-  }
-
-  Future<void> _initializeHealthConnect() async {
-    try {
-      // Check if Health Connect is available
-      final available = await _healthService.checkAvailability();
-      
-      if (mounted) {
-        setState(() {
-          _isAvailable = available;
-        });
-      }
-
-      if (available) {
-        // Request permissions
-        final granted = await _healthService.requestPermissions();
-        
-        if (mounted) {
-          setState(() {
-            _hasPermissions = granted;
-          });
-        }
-
-        if (granted) {
-          await _loadVitals();
-        } else {
-          if (mounted) {
-            setState(() {
-              _isLoading = false;
-            });
-          }
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error initializing Health Connect: $e');
-      }
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _loadVitals() async {
-    try {
-      final vitals = await _healthService.getAllVitals();
-      if (mounted) {
-        setState(() {
-          _vitals = vitals;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error loading vitals: $e');
-      }
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _refreshVitals() async {
-    setState(() {
-      _isLoading = true;
-    });
-    await _loadVitals();
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF020617),
+    return AppScaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0f172a),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Vitals',
-          style: TextStyle(color: Colors.white),
-        ),
-        elevation: 0,
-      ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            )
-          : _buildContent(),
-    );
-  }
-
-  Widget _buildContent() {
-    if (kIsWeb) {
-      return _buildWebPlaceholder();
-    }
-
-    if (!_isAvailable) {
-      return _buildNotAvailable();
-    }
-
-    if (!_hasPermissions) {
-      return _buildPermissionRequest();
-    }
-
-    if (_vitals.isEmpty) {
-      return _buildNoData();
-    }
-
-    return _buildVitalsDisplay();
-  }
-
-  Widget _buildWebPlaceholder() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              Icons.devices,
-              size: 80,
-              color: Colors.white.withOpacity(0.5),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Health Connect',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
+            const Text("Vitals"),
             Text(
-              'Health Connect is available on Android devices.\nConnect your Galaxy Watch or other health devices.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 16,
-              ),
+              "Today at a glance",
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.muted,
+                  ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildNotAvailable() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.health_and_safety_outlined,
-              size: 80,
-              color: Colors.white.withOpacity(0.5),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Health Connect Not Available',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Please install Health Connect from Google Play Store to sync vitals from your Galaxy Watch or Samsung Health.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPermissionRequest() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.lock_outline,
-              size: 80,
-              color: Colors.white.withOpacity(0.5),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Permission Required',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'We need permission to read your health data from Health Connect.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () async {
-                final granted = await _healthService.requestPermissions();
-                if (granted && mounted) {
-                  setState(() {
-                    _hasPermissions = true;
-                  });
-                  await _loadVitals();
-                } else if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Permissions denied. Please grant permissions in settings.'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3b82f6),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Grant Permissions',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNoData() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.inbox_outlined,
-              size: 80,
-              color: Colors.white.withOpacity(0.5),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'No Data Available',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Sync your Galaxy Watch or Samsung Health to see your vitals here.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: _refreshVitals,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Refresh'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3b82f6),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVitalsDisplay() {
-    return RefreshIndicator(
-      onRefresh: _refreshVitals,
-      color: Colors.white,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
-          if (_vitals['heartRate'] != null)
-            _buildVitalCard(
-              'Heart Rate',
-              '${_vitals['heartRate']} bpm',
-              Icons.favorite,
-              Colors.red,
-            ),
-          if (_vitals['bloodOxygen'] != null)
-            _buildVitalCard(
-              'Blood Oxygen (SpO₂)',
-              '${_vitals['bloodOxygen']}%',
-              Icons.air,
-              Colors.blue,
-            ),
-          if (_vitals['bloodPressureSystolic'] != null &&
-              _vitals['bloodPressureDiastolic'] != null)
-            _buildVitalCard(
-              'Blood Pressure',
-              '${_vitals['bloodPressureSystolic']?.toInt()}/${_vitals['bloodPressureDiastolic']?.toInt()} mmHg',
-              Icons.monitor_heart,
-              Colors.purple,
-            ),
-          if (_vitals['temperature'] != null)
-            _buildVitalCard(
-              'Temperature',
-              '${_vitals['temperature']?.toStringAsFixed(1)}°F',
-              Icons.thermostat,
-              Colors.orange,
-            ),
-          if (_vitals['steps'] != null)
-            _buildVitalCard(
-              'Steps Today',
-              '${_vitals['steps']} steps',
-              Icons.directions_walk,
-              Colors.green,
-            ),
-          if (_vitals['calories'] != null)
-            _buildVitalCard(
-              'Calories Burned',
-              '${_vitals['calories']} kcal',
-              Icons.local_fire_department,
-              Colors.deepOrange,
-            ),
-          if (_vitals['sleepHours'] != null)
-            _buildVitalCard(
-              'Sleep Last Night',
-              '${_vitals['sleepHours']} hours',
-              Icons.bedtime,
-              Colors.indigo,
-            ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Last updated: ${_formatDateTime(_vitals['lastUpdated'] ?? '')}',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.5),
-                fontSize: 12,
-              ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                AppCard(
+                  padding: const EdgeInsets.all(18),
+                  glow: true,
+                  glowColor: AppColors.accent,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Recovery pulse',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          _statTile(
+                            context,
+                            label: "Heart Rate",
+                            value: "72",
+                            unit: "bpm",
+                            color: AppColors.accentRose,
+                            icon: Icons.favorite,
+                          ),
+                          const SizedBox(width: 12),
+                          _statTile(
+                            context,
+                            label: "Steps",
+                            value: "5,432",
+                            unit: "steps",
+                            color: AppColors.accent,
+                            icon: Icons.directions_walk,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          _statTile(
+                            context,
+                            label: "Calories",
+                            value: "1,280",
+                            unit: "kcal",
+                            color: AppColors.accentAmber,
+                            icon: Icons.local_fire_department,
+                          ),
+                          const SizedBox(width: 12),
+                          _statTile(
+                            context,
+                            label: "Sleep",
+                            value: "7.4",
+                            unit: "hrs",
+                            color: AppColors.accentBlue,
+                            icon: Icons.nightlight_round,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _vitalCard(
+                  context,
+                  label: "Heart Rate",
+                  value: "72 bpm",
+                  icon: Icons.favorite,
+                  color: AppColors.accentRose,
+                  subtitle: "Resting · 10 mins ago",
+                ),
+                const SizedBox(height: 12),
+                _vitalCard(
+                  context,
+                  label: "Steps",
+                  value: "5,432",
+                  icon: Icons.directions_walk,
+                  color: AppColors.accent,
+                  subtitle: "Daily goal 8,000",
+                ),
+                const SizedBox(height: 12),
+                _vitalCard(
+                  context,
+                  label: "Calories",
+                  value: "1,280 kcal",
+                  icon: Icons.local_fire_department,
+                  color: AppColors.accentAmber,
+                  subtitle: "Active burn",
+                ),
+                const SizedBox(height: 16),
+                AppCard(
+                  child: ListTile(
+                    leading: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.accentBlue.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.watch, color: AppColors.accentBlue),
+                    ),
+                    title: const Text("Connect Smartwatch"),
+                    subtitle: Text(
+                      "Sync live vitals from your wearable.",
+                      style: TextStyle(color: Colors.white.withOpacity(0.6)),
+                    ),
+                    trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                  ),
+                ),
+              ],
             ),
           ),
+          const HealthTipBar(),
         ],
       ),
     );
   }
 
-  Widget _buildVitalCard(String title, String value, IconData icon, Color color) {
-    return Card(
-      color: const Color(0xFF1e293b),
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: color, size: 28),
+  Widget _statTile(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required String unit,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceSoft,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.outline.withOpacity(0.6)),
         ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        trailing: Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            Text(
+              unit,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.muted,
+                  ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  String _formatDateTime(String isoDate) {
-    try {
-      final date = DateTime.parse(isoDate);
-      final months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec'
-      ];
-      final hours = date.hour.toString().padLeft(2, '0');
-      final minutes = date.minute.toString().padLeft(2, '0');
-      return '${months[date.month - 1]} ${date.day}, ${date.year} at $hours:$minutes';
-    } catch (e) {
-      return isoDate;
-    }
+  Widget _vitalCard(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+    String? subtitle,
+  }) {
+    return AppCard(
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.16),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: color),
+        ),
+        title: Text(label),
+        subtitle: subtitle == null
+            ? null
+            : Text(
+                subtitle,
+                style: TextStyle(color: Colors.white.withOpacity(0.6)),
+              ),
+        trailing: Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
   }
 }
-

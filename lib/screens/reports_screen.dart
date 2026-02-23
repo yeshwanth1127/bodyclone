@@ -3,6 +3,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/health_api_service.dart';
 import '../models/health_data.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_scaffold.dart';
+import '../widgets/app_card.dart';
 import 'voice_report_screen.dart';
 import 'report_detail_screen.dart';
 
@@ -27,7 +30,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Reload when returning from voice report screen
     final result = ModalRoute.of(context)?.settings.arguments;
     if (result == true) {
       _loadReports();
@@ -63,21 +65,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
         final file = result.files.single;
         final fileName = file.name;
         final filePath = kIsWeb ? null : file.path;
-        
+
         if (filePath == null && !kIsWeb) {
           throw Exception('File path is null');
         }
-        
-        // For web, we need to handle bytes differently
+
         if (kIsWeb && file.bytes != null) {
-          // Upload file to backend using bytes
           await _apiService.uploadReportBytes(
             fileBytes: file.bytes!,
             fileName: fileName,
             isPrescription: isPrescription,
           );
         } else if (filePath != null) {
-          // Upload file to backend using path
           await _apiService.uploadReport(
             filePath: filePath,
             fileName: fileName,
@@ -87,7 +86,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
           throw Exception('Unable to get file data');
         }
 
-        // Reload reports
         await _loadReports();
 
         if (mounted) {
@@ -98,7 +96,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ? 'Prescription uploaded successfully'
                     : 'Report uploaded successfully',
               ),
-              backgroundColor: const Color(0xFF1e293b),
             ),
           );
         }
@@ -108,7 +105,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error uploading file: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.danger,
           ),
         );
       }
@@ -117,19 +114,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF020617),
+    return AppScaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0f172a),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Reports',
-          style: TextStyle(color: Colors.white),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Reports'),
+            Text(
+              'Clinical docs and voice summaries',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.muted,
+                  ),
+            ),
+          ],
         ),
-        elevation: 0,
       ),
       body: _isLoading
           ? const Center(
@@ -137,79 +139,67 @@ class _ReportsScreenState extends State<ReportsScreen> {
             )
           : Column(
               children: [
-                // Action buttons
-                Container(
+                Padding(
                   padding: const EdgeInsets.all(16),
-                  color: const Color(0xFF0f172a),
-                  child: Column(
-                    children: [
-                      // Voice report button (full width)
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            final result = await Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const VoiceReportScreen(),
+                  child: AppCard(
+                    padding: const EdgeInsets.all(18),
+                    glow: true,
+                    glowColor: AppColors.accentBlue,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Quick actions',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                letterSpacing: 0.2,
                               ),
-                            );
-                            if (result == true) {
-                              await _loadReports();
-                            }
-                          },
-                          icon: const Icon(Icons.mic),
-                          label: const Text('Record Voice Report'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10b981),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final result = await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const VoiceReportScreen(),
+                                ),
+                              );
+                              if (result == true) {
+                                await _loadReports();
+                              }
+                            },
+                            icon: const Icon(Icons.mic),
+                            label: const Text('Record Voice Report'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.accent,
+                              foregroundColor: AppColors.ink,
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Upload buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _uploadFile(isPrescription: false),
-                              icon: const Icon(Icons.upload_file),
-                              label: const Text('Upload Report'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF3b82f6),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () => _uploadFile(isPrescription: false),
+                                icon: const Icon(Icons.upload_file),
+                                label: const Text('Upload Report'),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _uploadFile(isPrescription: true),
-                              icon: const Icon(Icons.description),
-                              label: const Text('Upload Prescription'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF8b5cf6),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () => _uploadFile(isPrescription: true),
+                                icon: const Icon(Icons.description),
+                                label: const Text('Upload Prescription'),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                // Reports list
                 Expanded(
                   child: _reports.isEmpty
                       ? Center(
@@ -225,17 +215,23 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               Text(
                                 'No reports yet',
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
+                                  color: Colors.white.withOpacity(0.8),
                                   fontSize: 18,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 'Upload your first report or prescription',
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.5),
+                                  color: Colors.white.withOpacity(0.6),
                                   fontSize: 14,
                                 ),
+                              ),
+                              const SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: () => _uploadFile(isPrescription: false),
+                                child: const Text('Add a report'),
                               ),
                             ],
                           ),
@@ -245,110 +241,127 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           itemCount: _reports.length,
                           itemBuilder: (context, index) {
                             final report = _reports[index];
-                            return Card(
-                              color: const Color(0xFF1e293b),
-                              margin: const EdgeInsets.only(bottom: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: InkWell(
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => ReportDetailScreen(report: report),
-                                    ),
-                                  );
-                                },
-                                borderRadius: BorderRadius.circular(12),
-                                child: ListTile(
-                                  leading: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: report.isVoiceReport
-                                          ? const Color(0xFF10b981).withOpacity(0.2)
-                                          : const Color(0xFF3b82f6).withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(
-                                      report.isVoiceReport ? Icons.mic : Icons.description,
-                                      color: report.isVoiceReport
-                                          ? const Color(0xFF10b981)
-                                          : const Color(0xFF3b82f6),
-                                    ),
+                            return TweenAnimationBuilder<double>(
+                              tween: Tween(begin: 0, end: 1),
+                              duration: Duration(milliseconds: 300 + index * 40),
+                              builder: (context, value, child) {
+                                return Opacity(
+                                  opacity: value,
+                                  child: Transform.translate(
+                                    offset: Offset(0, (1 - value) * 10),
+                                    child: child,
                                   ),
-                                  title: Text(
-                                    report.isVoiceReport && report.patientName != null
-                                        ? '${report.type} - ${report.patientName}'
-                                        : report.type,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const SizedBox(height: 4),
-                                    if (report.fileName != null)
-                                      Padding(
-                                        padding: const EdgeInsets.only(bottom: 4),
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.attach_file,
-                                              size: 14,
-                                              color: Colors.white.withOpacity(0.7),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              report.fileName!,
-                                              style: TextStyle(
-                                                color: Colors.white.withOpacity(0.7),
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                );
+                              },
+                              child: AppCard(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: EdgeInsets.zero,
+                                child: InkWell(
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => ReportDetailScreen(report: report),
                                       ),
-                                    Text(
-                                      _formatDate(report.date),
-                                      style: TextStyle(
-                                        color: Colors.white.withOpacity(0.7),
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    if (report.summary.isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 4),
-                                        child: Text(
-                                          report.summary,
-                                          style: TextStyle(
-                                            color: Colors.white.withOpacity(0.6),
-                                            fontSize: 12,
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 48,
+                                          height: 48,
+                                          decoration: BoxDecoration(
+                                            color: report.isVoiceReport
+                                                ? AppColors.accent.withOpacity(0.2)
+                                                : AppColors.accentBlue.withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(14),
+                                          ),
+                                          child: Icon(
+                                            report.isVoiceReport ? Icons.mic : Icons.description,
+                                            color: report.isVoiceReport
+                                                ? AppColors.accent
+                                                : AppColors.accentBlue,
                                           ),
                                         ),
-                                      ),
-                                  ],
-                                ),
-                                trailing: Chip(
-                                  label: Text(
-                                    report.status,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.white,
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                report.isVoiceReport && report.patientName != null
+                                                    ? '${report.type} · ${report.patientName}'
+                                                    : report.type,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              if (report.fileName != null)
+                                                Text(
+                                                  report.fileName!,
+                                                  style: TextStyle(
+                                                    color: Colors.white.withOpacity(0.6),
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              const SizedBox(height: 6),
+                                              Text(
+                                                _formatDate(report.date),
+                                                style: TextStyle(
+                                                  color: Colors.white.withOpacity(0.6),
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                              if (report.summary.isNotEmpty)
+                                                Padding(
+                                                  padding: const EdgeInsets.only(top: 6),
+                                                  child: Text(
+                                                    report.summary,
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      color: Colors.white.withOpacity(0.65),
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.success.withOpacity(0.15),
+                                            borderRadius: BorderRadius.circular(999),
+                                            border: Border.all(
+                                              color: AppColors.success.withOpacity(0.4),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            report.status,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  backgroundColor: Colors.green.withOpacity(0.2),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
                                   ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
+                            );
+                          },
+                        ),
                 ),
               ],
             ),
@@ -378,4 +391,3 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 }
-
